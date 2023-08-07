@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func main() {
@@ -28,23 +27,20 @@ func main() {
 	}
 	defer file.Close()
 
-	service := NewService()
+	service, err := NewTranslationService(*language)
+	if err != nil {
+		panic(err)
+	}
+
 	scanner := bufio.NewScanner(file)
 	buf := make([]byte, 0, 64*1024)
 	scanner.Buffer(buf, 1024*1024)
 	for scanner.Scan() {
 		text := scanner.Text()
-		if strings.Contains(text, `"`) {
-			sub := text[(strings.Index(text, `"`) + 1):]
-			value := sub[:strings.Index(sub, `"`)]
-			translated, err := service.translateText(*language, value)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Println(fmt.Sprintf(`%s"%s"%s`, text[:strings.Index(text, `"`)], translated, sub[strings.Index(sub, `"`)+1:]))
-		} else {
-			fmt.Println(text)
+		translated, err := service.translateInnerText(text)
+		if err != nil {
+			panic(err)
 		}
+		fmt.Println(translated)
 	}
 }
